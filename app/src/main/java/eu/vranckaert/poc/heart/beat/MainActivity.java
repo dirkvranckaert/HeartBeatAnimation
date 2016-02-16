@@ -13,8 +13,8 @@ import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements OnClickListener {
     private View mImage;
-    private boolean beating = false;
-    private boolean mHeartBeatCancelled = false;
+    private Animator mBeatingAnimation;
+    private boolean mBeating = false;
     private int mCurrentBpm;
 
     @Override
@@ -36,12 +36,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     public void onClick(View v) {
         int id = v.getId();
         if (id == R.id.button) {
-            beating = !beating;
-            if (beating) {
-                mHeartBeatCancelled = false;
+            mBeating = !mBeating;
+            if (mBeating) {
                 playHeartBeat(mCurrentBpm);
-            } else {
-                cancelHeartBeat();
             }
         } else if (id == R.id.bpm_35) {
             setBPM(35);
@@ -62,11 +59,12 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         ((TextView) findViewById(R.id.current_bpm)).setText("Current BPM: " + mCurrentBpm);
     }
 
-    private void cancelHeartBeat() {
-        mHeartBeatCancelled = true;
-    }
-
     private void playHeartBeat(int bpm) {
+        if (mBeatingAnimation != null) {
+            mBeatingAnimation.cancel();
+            mBeatingAnimation = null;
+        }
+
         long beatDuration = 60000/bpm;
 
         AnimatorSet animatorSet = new AnimatorSet();
@@ -76,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         animatorSet.setInterpolator(new DecelerateInterpolator());
         animatorSet.setDuration(beatDuration);
         animatorSet.addListener(new AnimatorListener() {
+            private boolean cancelled = false;
             @Override
             public void onAnimationStart(Animator animation) {
 
@@ -83,14 +82,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                if (!mHeartBeatCancelled) {
+                if (!cancelled && mBeating) {
                     playHeartBeat(mCurrentBpm);
                 }
             }
 
             @Override
             public void onAnimationCancel(Animator animation) {
-
+                cancelled = true;
             }
 
             @Override
@@ -99,5 +98,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             }
         });
         animatorSet.start();
+        mBeatingAnimation = animatorSet;
     }
 }
